@@ -19,6 +19,22 @@ const camera = new THREE.PerspectiveCamera(76, innerWidth / innerHeight, 0.08, 6
 camera.position.set(0, 1.66, 8.2);
 scene.add(camera);
 
+const paws = new THREE.Group();
+camera.add(paws);
+function makePlayerPaw(x) {
+  const paw = new THREE.Group(); paw.position.set(x, -.55, -.76); paws.add(paw);
+  const fur = new THREE.MeshStandardMaterial({ color: 0xe9e2d1, roughness: .92 });
+  const beans = new THREE.MeshStandardMaterial({ color: 0xb97478, roughness: .78 });
+  const palm = new THREE.Mesh(new THREE.SphereGeometry(.19, 14, 10), fur); palm.scale.set(1, .72, 1.16); palm.castShadow = false; paw.add(palm);
+  const pad = new THREE.Mesh(new THREE.SphereGeometry(.075, 12, 8), beans); pad.scale.set(1.12, 1, .34); pad.position.set(0, .008, -.195); paw.add(pad);
+  for (const toeX of [-.105, -.035, .035, .105]) {
+    const toe = new THREE.Mesh(new THREE.SphereGeometry(.043, 10, 8), beans); toe.scale.z = .4; toe.position.set(toeX, .102, -.174); paw.add(toe);
+  }
+  return paw;
+}
+const leftPaw = makePlayerPaw(-.31);
+const rightPaw = makePlayerPaw(.31);
+
 const clock = new THREE.Clock();
 const raycaster = new THREE.Raycaster();
 const down = new THREE.Vector3(0, -1, 0);
@@ -280,6 +296,9 @@ function updatePlayer(dt) {
     state.bob += dt * (sprinting ? 13 : 8);
     camera.position.y = 1.66 + Math.sin(state.bob) * (sprinting ? .045 : .022);
   } else camera.position.y = THREE.MathUtils.lerp(camera.position.y, 1.66, dt * 8);
+  paws.position.y = moving ? Math.sin(state.bob * .5) * .026 : THREE.MathUtils.lerp(paws.position.y, 0, dt * 8);
+  leftPaw.position.x = -.31 + (moving ? Math.sin(state.bob) * .025 : 0);
+  rightPaw.position.x = .31 - (moving ? Math.sin(state.bob) * .025 : 0);
   state.damageCooldown = Math.max(0, state.damageCooldown - dt);
   return { moving, sprinting };
 }
