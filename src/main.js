@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import './style.css';
+import { depositLoot, EXTRACTION_TARGET, movementSpeed, shouldWarnWhisker } from './gameRules.js';
 
 const canvas = document.querySelector('#scene');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -228,8 +229,8 @@ function interact() {
   if (state.carried) {
     if (nearExit()) {
       const delivered = state.carried; delivered.carried = false; delivered.active = false; camera.remove(delivered.group); delivered.group.visible = false;
-      state.score += delivered.value; state.carried = null; ui.carrying.textContent = '空手'; ui.score.textContent = state.score;
-      if (state.score >= 20) endGame(true);
+      const delivery = depositLoot(state.score, delivered.value); state.score = delivery.score; state.carried = null; ui.carrying.textContent = '空手'; ui.score.textContent = state.score;
+      if (delivery.extracted) endGame(true);
       else showToast(`收到了 ${delivered.label}，目前 ${state.score} 元；再搬一些回來。`);
       return;
     }
@@ -274,7 +275,7 @@ function updatePlayer(dt) {
   const sprinting = keys.has('shift') && moving && !state.carried;
   if (moving) {
     moveVector.normalize();
-    const speed = state.carried ? 2.05 : sprinting ? 5.55 : 3.35;
+    const speed = movementSpeed({ carrying: Boolean(state.carried), sprinting });
     movePlayer(moveVector.x * speed * dt, moveVector.z * speed * dt);
     state.bob += dt * (sprinting ? 13 : 8);
     camera.position.y = 1.66 + Math.sin(state.bob) * (sprinting ? .045 : .022);
@@ -293,7 +294,7 @@ function updateMonsters(dt, playerMotion) {
     cat.group.lookAt(player.x, 0, player.z);
     cat.halo.intensity = cat.state === 'alert' ? 1.5 + Math.sin(cat.phase * 2) * .8 : cat.state === 'chase' ? 2.7 : 0;
     if (cat.kind === 'whisker') {
-      if (cat.state === 'idle' && distance < 6.2) { cat.state = 'alert'; cat.alert = 1.75; soundAlarm(); showToast('喵——方鬍子貓發出警告！快離開牠附近！', 2.8); }
+      if (shouldWarnWhisker(cat.state, distance)) { cat.state = 'alert'; cat.alert = 1.75; soundAlarm(); showToast('喵——方鬍子貓發出警告！快離開牠附近！', 2.8); }
       else if (cat.state === 'alert') {
         cat.alert -= dt;
         if (distance > 8.2) cat.state = 'idle';
