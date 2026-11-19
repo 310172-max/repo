@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#10130f" />
+    <title>夜班貓隊｜3D 可玩原型</title>
+  </head>
+  <body>
+    <div id="game-root">
+      <div class="topbar">
+        <a href="./index.html" class="brand">← 夜班貓隊</a>
+        <span class="build-tag">3D 原型 0.2</span>
+      </div>
+      <div class="hud" aria-live="polite">
+        <div class="hud-card"><small>回收價值</small><strong><span id="score">0</span> / 20</strong></div>
+        <div class="hud-card"><small>搬運中</small><strong id="carrying">空手</strong></div>
+        <div class="hud-card"><small>剩餘時間</small><strong><span id="timer">180</span>s</strong></div>
+        <div class="hud-card"><small>機會</small><strong id="lives">♥ ♥ ♥</strong></div>
+      </div>
+      <div id="prompt" class="prompt"></div>
+      <div id="toast" class="toast"></div>
+      <div id="overlay" class="overlay">
+        <div class="overlay-card">
+          <p class="eyebrow">午夜便利商店 · 單人 3D 原型</p>
+          <h1 id="overlay-title">今晚搬點大的</h1>
+          <p id="overlay-copy">在店裡找戰利品，搬回綠色撤離門。湊滿 20 元就能收工。方鬍子貓靠近會先叫你一聲。</p>
+          <div class="controls"><span><b>W A S D</b> 移動</span><span><b>滑鼠</b> 看方向</span><span><b>E</b> 搬起／放下</span><span><b>Shift</b> 衝刺</span><span><b>Esc</b> 暫停</span></div>
+          <button id="start-button">進入便利商店</button>
+          <p class="small-note">建議使用電腦與滑鼠。請在本機伺服器或發布網站上遊玩。</p>
+        </div>
+      </div>
+      <div id="crosshair" aria-hidden="true">+</div>
+      <div id="vignette"></div>
+      <canvas id="scene" aria-label="第一人稱 3D 午夜便利商店"></canvas>
+    </div>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

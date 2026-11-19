@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#11110f" />
+    <meta name="description" content="在 3D 午夜便利商店搬運貓咪迷因戰利品，躲開怪物，在倒數結束前撤離。" />
+    <title>夜班貓隊｜3D 合作搜刮遊戲概念</title>
+    <style>
+      :root { color-scheme: dark; font-family: ui-sans-serif, system-ui, "Noto Sans TC", sans-serif; background: #11110f; color: #f4f0e7; }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; background: radial-gradient(ellipse at 75% 12%, #343321 0, transparent 36%), #11110f; }
+      .wrap { width: min(1060px, calc(100% - 40px)); margin: auto; }
+      header { display: flex; justify-content: space-between; align-items: center; padding: 28px 0; border-bottom: 1px solid #ffffff1a; }
+      .brand { color: #f4f0e7; text-decoration: none; font-weight: 800; letter-spacing: .05em; }
+      .status { color: #c2bdac; font-size: .82rem; }
+      main { padding: 92px 0 70px; }
+      .eyebrow { color: #c8ee74; font-weight: 700; letter-spacing: .16em; font-size: .8rem; }
+      h1 { max-width: 760px; margin: 18px 0; font-size: clamp(3rem, 9vw, 6.8rem); line-height: .98; letter-spacing: -.065em; }
+      h1 span { color: #c8ee74; }
+      .lead { max-width: 620px; color: #c2bdac; font-size: clamp(1.1rem, 2vw, 1.3rem); line-height: 1.8; }
+      .actions { display: flex; gap: 12px; flex-wrap: wrap; margin: 30px 0 80px; }
+      .button { display: inline-block; padding: 13px 18px; border-radius: 8px; background: #c8ee74; color: #17180f; font-weight: 800; text-decoration: none; }
+      .button.secondary { background: #ffffff10; color: #f4f0e7; border: 1px solid #ffffff24; }
+      h2 { font-size: 1.45rem; margin: 0 0 18px; }
+      .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+      article { min-height: 190px; padding: 22px; border: 1px solid #ffffff1a; border-radius: 12px; background: #ffffff08; }
+      article b { display: block; margin-bottom: 12px; font-size: 1.1rem; }
+      article p { color: #c2bdac; line-height: 1.7; margin: 0; }
+      footer { padding: 24px 0 36px; color: #817f75; font-size: .85rem; border-top: 1px solid #ffffff1a; }
+      @media (max-width: 700px) { main { padding-top: 64px; } .cards { grid-template-columns: 1fr; } article { min-height: auto; } }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <a class="brand" href="#top">夜班貓隊</a>
+        <span class="status">遊戲概念開發中</span>
+      </header>
+      <main id="top">
+        <div class="eyebrow">第一人稱 3D 搜刮 · 貓咪迷因宇宙</div>
+        <h1>搬得越多，<br /><span>跑得越快。</span></h1>
+        <p class="lead">踏進午夜便利商店，搬回值錢的戰利品，再從迷因怪物手中逃出來。先玩單人 3D 原型；合作玩法正在規劃中。</p>
+        <div class="actions">
+          <a class="button" href="prototype.html">開始遊玩原型</a>
+          <a class="button" href="#loop">看看任務</a>
+          <a class="button secondary" href="prototype.html">操作與目標</a>
+        </div>
+        <section id="loop">
+          <h2>一趟夜班的任務</h2>
+          <div class="cards">
+            <article><b>01 · 找到戰利品</b><p>走進午夜便利商店的貨架間，搜尋值得帶走的物品。</p></article>
+            <article><b>02 · 搬運與躲藏</b><p>提著貨物移動較慢；衝刺會吵醒附近的鍵盤暴走貓。</p></article>
+            <article><b>03 · 趕在天亮前撤離</b><p>把戰利品送到撤離點。達到目標就快走，別貪心到最後一刻。</p></article>
+          </div>
+        </section>
+      </main>
+      <footer>早期概念頁 · 角色、怪物與關卡仍在設計中</footer>
+    </div>
+  </body>
+</html>
