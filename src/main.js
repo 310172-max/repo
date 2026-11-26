@@ -46,7 +46,7 @@ const colliders = [];
 const loot = [];
 const monsters = [];
 const keys = new Set();
-const state = { running: false, locked: false, score: 0, time: 180, lives: 3, carried: null, guestCarried: null, toastTimer: 0, damageCooldown: 0, bob: 0, networkSession: null, networkRole: null, networkStarted: false, networkSyncElapsed: 0, remoteAvatar: null, remoteTarget: null };
+const state = { running: false, locked: false, score: 0, time: 180, lives: 3, carried: null, guestCarried: null, hostExtracted: false, guestExtracted: false, guestSprinting: false, guestDamageCooldown: 0, toastTimer: 0, damageCooldown: 0, bob: 0, networkSession: null, networkRole: null, networkStarted: false, networkSyncElapsed: 0, remoteAvatar: null, remoteTarget: null };
 
 const ui = {
   score: document.querySelector('#score'), progress: document.querySelector('#score-progress'), carrying: document.querySelector('#carrying'), timer: document.querySelector('#timer'),
@@ -76,7 +76,7 @@ function openNetworkRoom(action, roomCode = '') {
     else if (message.type === 'disconnected') {
       state.networkSession = null; state.networkRole = null; state.networkStarted = false; removeRemoteAvatar(); ui.networkStatus.textContent = '連線已中斷。'; ui.leaveRoom.hidden = true;
     } else if (message.type === 'input' && state.networkRole === 'host') {
-      updateRemoteAvatar(message.input);
+      updateRemoteAvatar(message.input); state.guestSprinting = Boolean(message.input?.sprinting);
     } else if (message.type === 'interact' && state.networkRole === 'host') {
       interactGuest();
     } else if (message.type === 'snapshot' && state.networkRole === 'guest') {
@@ -230,7 +230,9 @@ function updateRemoteAvatar(pose) {
 function createNetworkSnapshot(result = null) {
   return {
     host: { x: camera.position.x, z: camera.position.z, yaw: camera.rotation.y },
+    guest: state.remoteTarget ? { x: state.remoteTarget.x, z: state.remoteTarget.z } : null,
     score: state.score, time: state.time, lives: state.lives, result,
+    extraction: { host: state.hostExtracted, guest: state.guestExtracted },
     loot: loot.map(item => {
       const position = item.group.getWorldPosition(new THREE.Vector3());
       return { id: item.id, active: item.active, carried: Boolean(item.carried || state.guestCarried === item.id), x: position.x, y: position.y, z: position.z };
@@ -242,10 +244,15 @@ function createNetworkSnapshot(result = null) {
 
 function applyNetworkSnapshot(snapshot) {
   if (!snapshot || typeof snapshot !== 'object') return;
+  const previousLives = state.lives;
   updateRemoteAvatar(snapshot.host);
   if (Number.isFinite(snapshot.score)) { state.score = snapshot.score; ui.score.textContent = String(snapshot.score); ui.progress.value = snapshot.score; }
   if (Number.isFinite(snapshot.time)) { state.time = snapshot.time; ui.timer.textContent = String(Math.max(0, Math.ceil(snapshot.time))); }
   if (Number.isFinite(snapshot.lives)) { state.lives = snapshot.lives; ui.lives.textContent = '♥ '.repeat(Math.max(0, state.lives)).trim() || '0'; }
+  if (snapshot.extraction) { state.hostExtracted = Boolean(snapshot.extraction.host); state.guestExtracted = Boolean(snapshot.extraction.guest); }
+  if (snapshot.guest && Number.isFinite(snapshot.guest.x) && Number.isFinite(snapshot.guest.z)) {
+    if (Number.isFinite(snapshot.lives) && snapshot.lives < previousLives) camera.position.set(snapshot.guest.x, 1.66, snapshot.guest.z);
+  }
   for (const itemState of snapshot.loot ?? []) {
     const item = loot[itemState.id];
     if (!item || !Number.isFinite(itemState.x) || !Number.isFinite(itemState.y) || !Number.isFinite(itemState.z)) continue;
@@ -301,7 +308,7 @@ function setOverlay(headline, copy, buttonText) { ui.title.textContent = headlin
 function start() {
   if (state.networkRole === 'guest' && !state.networkStarted) { showToast('等房主開始後，再按下加入遊戲。'); return; }
   if (!state.running) {
-    state.score = 0; state.time = 180; state.lives = 3; state.carried = null; state.guestCarried = null; state.damageCooldown = 0;
+    state.score = 0; state.time = 180; state.lives = 3; state.carried = null; state.guestCarried = null; state.hostExtracted = false; state.guestExtracted = false; state.damageCooldown = 0; state.guestDamageCooldown = 0;
     ui.score.textContent = '0'; ui.progress.value = 0; ui.timer.textContent = '180'; ui.lives.textContent = '♥ ♥ ♥'; ui.carrying.textContent = '空手';
     camera.position.set(0, 1.66, 8.2); camera.rotation.set(0, 0, 0);
     for (const item of loot) {
@@ -366,13 +373,18 @@ function nearestLoot(maxDistance = 2.35) {
   return result;
 }
 function nearExit() { return Math.hypot(camera.position.x, camera.position.z + 9.0) < 2.35; }
+function checkCoopVictory() {
+  if (state.networkRole === 'host' && state.networkSession && state.score >= EXTRACTION_TARGET && state.hostExtracted && state.guestExtracted) endGame(true);
+}
 function interact() {
   if (state.networkRole === 'guest') { state.networkSession?.sendInteraction(); return; }
   if (state.carried) {
     if (nearExit()) {
       const delivered = state.carried; delivered.carried = false; delivered.active = false; camera.remove(delivered.group); delivered.group.visible = false;
       const delivery = depositLoot(state.score, delivered.value); state.score = delivery.score; state.carried = null; ui.carrying.textContent = '空手'; ui.score.textContent = state.score; ui.progress.value = state.score;
-      if (delivery.extracted) endGame(true);
+      if (delivery.extracted && state.networkRole === 'host' && state.networkSession) {
+        state.hostExtracted = true; showToast(state.guestExtracted ? '兩位隊員都已抵達撤離點！' : '目標達成！等隊友到撤離點完成撤離。'); checkCoopVictory();
+      } else if (delivery.extracted) endGame(true);
       else showToast(`收到了 ${delivered.label}，目前 ${state.score} 元；再搬一些回來。`);
       return;
     }
@@ -381,7 +393,11 @@ function interact() {
     const dir = new THREE.Vector3(); camera.getWorldDirection(dir); dropped.group.position.set(camera.position.x + dir.x * 1.25, .35, camera.position.z + dir.z * 1.25);
     ui.carrying.textContent = '空手'; showToast(`放下了${dropped.label}。`); return;
   }
-  if (nearExit()) { showToast(state.score >= 20 ? '已達標！把手上的東西送到門邊就能撤離。' : '還差一些：需要先回收至少 20 元。'); return; }
+  if (nearExit()) {
+    if (state.networkRole === 'host' && state.networkSession && state.score >= EXTRACTION_TARGET) { state.hostExtracted = true; showToast('已就位，等待隊友完成撤離。'); checkCoopVictory(); }
+    else showToast(state.score >= EXTRACTION_TARGET ? '已達標！把手上的東西送到門邊就能撤離。' : '還差一些：需要先回收至少 20 元。');
+    return;
+  }
   const item = nearestLoot();
   if (!item) { showToast('附近沒有可以搬的戰利品。'); return; }
   item.carried = true; state.carried = item; scene.remove(item.group); camera.add(item.group);
@@ -398,14 +414,19 @@ function interactGuest() {
       if (!item) { state.guestCarried = null; return; }
       item.active = false; item.carried = false; item.group.visible = false;
       const delivery = depositLoot(state.score, item.value); state.score = delivery.score; state.guestCarried = null;
-      if (delivery.extracted) endGame(true); else showToast(`隊友存放了${item.label}，目前 ${state.score} 元。`);
+      if (delivery.extracted) { state.guestExtracted = true; showToast(state.hostExtracted ? '兩位隊員都已抵達撤離點！' : `隊友存放了${item.label}，等房主完成撤離。`); checkCoopVictory(); }
+      else showToast(`隊友存放了${item.label}，目前 ${state.score} 元。`);
       return;
     }
     const item = loot[state.guestCarried];
     if (item) { item.carried = false; item.active = true; item.group.position.set(x + .6, .35, z); item.group.visible = true; }
     state.guestCarried = null; return;
   }
-  if (Math.hypot(x, z + 9) < 2.35) { showToast(state.score >= EXTRACTION_TARGET ? '已達標！隊友可以存放手上的東西撤離。' : '還差一些：需要先回收至少 20 元。'); return; }
+  if (Math.hypot(x, z + 9) < 2.35) {
+    if (state.score >= EXTRACTION_TARGET) { state.guestExtracted = true; showToast(state.hostExtracted ? '兩位隊員都已抵達撤離點！' : '你已就位，等房主完成撤離。'); checkCoopVictory(); }
+    else showToast('還差一些：需要先回收至少 20 元。');
+    return;
+  }
   let item = null, best = 2.35;
   for (const candidate of loot) if (candidate.active && !candidate.carried && candidate.id !== state.carried?.id && candidate.id !== state.guestCarried) {
     const distance = Math.hypot(x - candidate.group.position.x, z - candidate.group.position.z);
@@ -424,6 +445,20 @@ function damagePlayer(fromMonster) {
     item.group.position.set(camera.position.x + .8, .35, camera.position.z - .7); ui.carrying.textContent = '空手';
   }
   camera.position.set(0, 1.66, 8.2); showToast(`${fromMonster.name}嚇到你了，掉回入口！`);
+  state.hostExtracted = false;
+  if (state.lives <= 0) endGame(false);
+}
+function damageGuest(fromMonster) {
+  if (state.guestDamageCooldown > 0 || !state.remoteTarget) return;
+  state.guestDamageCooldown = 1.7; state.lives -= 1;
+  ui.lives.textContent = '♥ '.repeat(Math.max(0, state.lives)).trim() || '0';
+  if (state.guestCarried !== null) {
+    const item = loot[state.guestCarried]; state.guestCarried = null;
+    if (item) { item.carried = false; item.active = true; item.group.position.set(state.remoteTarget.x + .8, .35, state.remoteTarget.z - .7); item.group.visible = true; }
+  }
+  state.remoteTarget = { x: 0, z: 8.2, yaw: state.remoteTarget.yaw };
+  state.guestExtracted = false;
+  showToast(`隊友被${fromMonster.name}嚇到，掉回入口！`);
   if (state.lives <= 0) endGame(false);
 }
 function endGame(won) {
@@ -455,12 +490,18 @@ function updatePlayer(dt) {
   leftPaw.position.x = -.31 + (moving ? Math.sin(state.bob) * .025 : 0);
   rightPaw.position.x = .31 - (moving ? Math.sin(state.bob) * .025 : 0);
   state.damageCooldown = Math.max(0, state.damageCooldown - dt);
+  state.guestDamageCooldown = Math.max(0, state.guestDamageCooldown - dt);
   return { moving, sprinting };
 }
 
 function updateMonsters(dt, playerMotion) {
-  const player = camera.position;
   for (const cat of monsters) {
+    const guestCanBeTargeted = state.networkRole === 'host' && state.networkStarted && state.running && state.remoteTarget;
+    const hostDistance = Math.hypot(camera.position.x - cat.group.position.x, camera.position.z - cat.group.position.z);
+    const guestDistance = guestCanBeTargeted ? Math.hypot(state.remoteTarget.x - cat.group.position.x, state.remoteTarget.z - cat.group.position.z) : Infinity;
+    const targetGuest = guestDistance < hostDistance;
+    const player = targetGuest ? state.remoteTarget : camera.position;
+    const targetMotion = targetGuest ? { sprinting: state.guestSprinting } : playerMotion;
     const dx = player.x - cat.group.position.x, dz = player.z - cat.group.position.z;
     const distance = Math.hypot(dx, dz);
     cat.phase += dt * (cat.state === 'chase' ? 12 : 3);
@@ -479,16 +520,16 @@ function updateMonsters(dt, playerMotion) {
         const speed = 2.05;
         cat.group.position.x += (dx / Math.max(distance, .01)) * speed * dt;
         cat.group.position.z += (dz / Math.max(distance, .01)) * speed * dt;
-        if (distance < 1.35) damagePlayer(cat);
+        if (distance < 1.35) targetGuest ? damageGuest(cat) : damagePlayer(cat);
       }
     } else {
-      if (cat.state === 'idle' && playerMotion.sprinting && distance < 12) { cat.state = 'chase'; cat.alert = 5; showToast('衝刺聲驚動了鍵盤暴走貓！', 2.1); }
+      if (cat.state === 'idle' && targetMotion.sprinting && distance < 12) { cat.state = 'chase'; cat.alert = 5; showToast('衝刺聲驚動了鍵盤暴走貓！', 2.1); }
       if (cat.state === 'chase') {
         cat.alert -= dt;
         if (distance > 16 || cat.alert <= 0) cat.state = 'idle';
         else {
           const speed = 3.0; cat.group.position.x += (dx / Math.max(distance, .01)) * speed * dt; cat.group.position.z += (dz / Math.max(distance, .01)) * speed * dt;
-          if (distance < 1.3) damagePlayer(cat);
+          if (distance < 1.3) targetGuest ? damageGuest(cat) : damagePlayer(cat);
         }
       }
     }
@@ -496,12 +537,14 @@ function updateMonsters(dt, playerMotion) {
 }
 
 function updateHud() {
-  if (state.networkRole === 'guest') { ui.prompt.innerHTML = ''; ui.prompt.classList.remove('show'); return; }
   let hint = '';
   const item = nearestLoot();
   if (state.carried && nearExit()) hint = '按 <b>E</b> 存放戰利品並撤離';
   else if (state.carried) hint = '按 <b>E</b> 放下戰利品';
+  else if (state.networkRole === 'guest' && loot[state.guestCarried] && nearExit()) hint = '按 <b>E</b> 存放隊伍戰利品';
+  else if (nearExit() && state.networkRole === 'host' && state.networkSession && state.score >= EXTRACTION_TARGET) hint = '按 <b>E</b> 完成撤離，等待隊友';
   else if (nearExit()) hint = '綠色撤離門 · 需要 20 元';
+  else if (state.networkRole === 'guest' && loot[state.guestCarried]) hint = '按 <b>E</b> 放下戰利品';
   else if (item) hint = `按 <b>E</b> 搬起 ${item.label}（${item.value} 元）`;
   ui.prompt.innerHTML = hint; ui.prompt.classList.toggle('show', Boolean(hint));
 }
@@ -512,7 +555,7 @@ function updateNetwork(dt) {
   if (state.networkSyncElapsed < .1) return;
   state.networkSyncElapsed = 0;
   if (state.networkRole === 'guest') {
-    state.networkSession.sendInput({ x: camera.position.x, z: camera.position.z, yaw: camera.rotation.y });
+    state.networkSession.sendInput({ x: camera.position.x, z: camera.position.z, yaw: camera.rotation.y, sprinting: keys.has('shift') && moveVector.lengthSq() > 0 && !loot[state.guestCarried] });
   } else if (state.networkRole === 'host') {
     state.networkSession.sendSnapshot(createNetworkSnapshot());
   }
@@ -534,6 +577,11 @@ function animate() {
       if (state.time <= 0) endGame(false);
     }
     if (state.networkRole !== 'guest') updateMonsters(dt, playerMotion);
+    if (state.networkRole === 'host' && state.networkSession) {
+      if (state.hostExtracted && !nearExit()) state.hostExtracted = false;
+      if (state.guestExtracted && state.remoteTarget && Math.hypot(state.remoteTarget.x, state.remoteTarget.z + 9) >= 2.35) state.guestExtracted = false;
+      checkCoopVictory();
+    }
     updateNetwork(dt); updateHud();
     for (const item of loot) if (item.active && !item.carried) { item.angle += dt * .45; item.group.rotation.y = Math.sin(item.angle) * .12; item.group.position.y = item.baseY + Math.sin(item.angle * 2) * .045; }
     if (state.toastTimer > 0) { state.toastTimer -= dt; if (state.toastTimer <= 0) ui.toast.classList.remove('show'); }
