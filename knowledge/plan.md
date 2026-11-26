@@ -43,7 +43,7 @@
 
 ### 目前狀態
 
-目前已完成概念初談，並已把原本的平面草稿替換成 Three.js 第一人稱 3D 網頁原型：午夜便利商店場景、搬運與撤離、倒數、生命值、兩種怪物及方鬍子貓警告音效。Grumpy Cat 像素迷因圖已按 CC BY 2.0 署名。10 項自動化測試通過，正式建置成功；尚未透過瀏覽器遊玩驗證操作與平衡，也尚未將多人連線接入遊戲客戶端。Node.js WebSocket 兩人房間中繼服務已完成初版並有整合測試。GitHub Actions workflow 位於 `.github/workflows/pages.yml`；公開執行紀錄顯示遠端唯一一次部署在 `configure-pages` 取得 Pages 設定時回傳 404，原因是 repo 尚未啟用 Pages。workflow 已在本機更新至支援 Node 24 的 Action 版本，尚未推送或重跑。遠端 `main` 仍停在 `0e1125e`；本機包含從 `e464888` 開始的待推送提交。
+目前已完成概念初談，並已把原本的平面草稿替換成 Three.js 第一人稱 3D 網頁原型：午夜便利商店場景、搬運與撤離、倒數、生命值、兩種怪物及方鬍子貓警告音效。Grumpy Cat 像素迷因圖已按 CC BY 2.0 署名。12 項自動化測試通過，正式建置成功；尚未透過瀏覽器遊玩驗證操作與平衡，也尚未將多人連線接入遊戲客戶端。Node.js WebSocket 房間中繼與角色受限的客戶端傳輸介面已完成初版並有整合測試。GitHub Actions workflow 位於 `.github/workflows/pages.yml`；公開執行紀錄顯示遠端唯一一次部署在 `configure-pages` 取得 Pages 設定時回傳 404，原因是 repo 尚未啟用 Pages。workflow 已在本機更新至支援 Node 24 的 Action 版本，尚未推送或重跑。遠端 `main` 仍停在 `0e1125e`；本機包含從 `e464888` 開始的待推送提交。
 
 ### 已完成
 
@@ -76,6 +76,7 @@
 - [x] 定義首輪合作測試切片：2 人、團隊回收／失敗規則與單局流程（參見 [gameplay.md](gameplay.md)；數值待遊玩驗證）。
 - [x] 選定首輪多人技術切片：本機 Node.js WebSocket 房間服務、房主權威狀態、2 人限制（參見 [network-architecture.md](network-architecture.md)）。
 - [x] 建立並測試本機 WebSocket 房間中繼：兩人限制、房間建立／加入、隊友輸入和房主快照轉送。
+- [x] 建立角色受限的客戶端傳輸介面並測試；尚未接上遊戲控制和 HUD。
 - [x] 為戰利品加入相對重量值，並依重量調整搬運速度；數值待遊玩平衡。
 - [ ] 細化物理互動、撤離後關卡升級規則；目前仍為簡化單件搬運。
 - [x] 記錄首輪兩隻怪物的現行觸發、追擊與受擊數值及暫定反制（參見 [monster-rules.md](monster-rules.md)）。
