@@ -58,6 +58,11 @@ export function connectRoom({ url, action, roomCode, WebSocketImpl = globalThis.
     ready,
     onMessage(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     sendInput(input) { return send('input', { name: 'input', value: input }, 'guest'); },
+    sendInteraction() {
+      if (!joined || role !== 'guest' || socket.readyState !== WebSocketImpl.OPEN) return false;
+      socket.send(JSON.stringify({ type: 'interact' }));
+      return true;
+    },
     sendStart() {
       if (!joined || role !== 'host' || socket.readyState !== WebSocketImpl.OPEN) return false;
       socket.send(JSON.stringify({ type: 'start' }));

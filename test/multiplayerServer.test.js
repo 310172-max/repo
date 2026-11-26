@@ -52,6 +52,10 @@ test('two-player rooms relay guest input and host snapshots, then close cleanly'
   guest.send(JSON.stringify({ type: 'input', input: { forward: true } }));
   assert.deepEqual(await forwardedInputMessage, { type: 'input', playerId: joined.playerId, input: { forward: true } });
 
+  const forwardedInteractionMessage = nextMessage(host);
+  guest.send(JSON.stringify({ type: 'interact' }));
+  assert.deepEqual(await forwardedInteractionMessage, { type: 'interact', playerId: joined.playerId });
+
   const snapshotMessage = nextMessage(guest);
   host.send(JSON.stringify({ type: 'snapshot', state: { score: 10 } }));
   assert.deepEqual(await snapshotMessage, { type: 'snapshot', state: { score: 10 } });

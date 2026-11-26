@@ -33,6 +33,7 @@ test('browser session helper enforces guest input and host snapshot roles', asyn
   assert.equal(host.sendInput({ forward: true }), false);
   assert.equal(guest.sendSnapshot({ score: 999 }), false);
   assert.equal(guest.sendStart(), false);
+  assert.equal(host.sendInteraction(), false);
 
   const startSignal = waitForMessage(guest, 'start');
   assert.equal(host.sendStart(), true);
@@ -41,6 +42,10 @@ test('browser session helper enforces guest input and host snapshot roles', asyn
   const relayedInput = waitForMessage(host, 'input');
   assert.equal(guest.sendInput({ forward: true, yaw: 1.2 }), true);
   assert.deepEqual((await relayedInput).input, { forward: true, yaw: 1.2 });
+
+  const relayedInteraction = waitForMessage(host, 'interact');
+  assert.equal(guest.sendInteraction(), true);
+  assert.equal((await relayedInteraction).playerId, (await guest.ready).playerId);
 
   const relayedSnapshot = waitForMessage(guest, 'snapshot');
   assert.equal(host.sendSnapshot({ score: 10 }), true);

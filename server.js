@@ -63,6 +63,8 @@ export function createGameServer({ host = '127.0.0.1', port = 1234 } = {}) {
 
       if (message.type === 'input' && socket.role === 'guest') {
         send(room.host, { type: 'input', playerId: socket.playerId, input: message.input });
+      } else if (message.type === 'interact' && socket.role === 'guest') {
+        send(room.host, { type: 'interact', playerId: socket.playerId });
       } else if (message.type === 'start' && socket.role === 'host') {
         send(room.guest, { type: 'start' });
       } else if (message.type === 'snapshot' && socket.role === 'host') {
