@@ -48,7 +48,7 @@ const keys = new Set();
 const state = { running: false, locked: false, score: 0, time: 180, lives: 3, carried: null, toastTimer: 0, damageCooldown: 0, bob: 0 };
 
 const ui = {
-  score: document.querySelector('#score'), carrying: document.querySelector('#carrying'), timer: document.querySelector('#timer'),
+  score: document.querySelector('#score'), progress: document.querySelector('#score-progress'), carrying: document.querySelector('#carrying'), timer: document.querySelector('#timer'),
   lives: document.querySelector('#lives'), prompt: document.querySelector('#prompt'), toast: document.querySelector('#toast'),
   overlay: document.querySelector('#overlay'), title: document.querySelector('#overlay-title'), copy: document.querySelector('#overlay-copy'),
   button: document.querySelector('#start-button'),
@@ -191,7 +191,7 @@ function setOverlay(headline, copy, buttonText) { ui.title.textContent = headlin
 function start() {
   if (!state.running) {
     state.score = 0; state.time = 180; state.lives = 3; state.carried = null; state.damageCooldown = 0;
-    ui.score.textContent = '0'; ui.timer.textContent = '180'; ui.lives.textContent = '♥ ♥ ♥'; ui.carrying.textContent = '空手';
+    ui.score.textContent = '0'; ui.progress.value = 0; ui.timer.textContent = '180'; ui.lives.textContent = '♥ ♥ ♥'; ui.carrying.textContent = '空手';
     camera.position.set(0, 1.66, 8.2); camera.rotation.set(0, 0, 0);
     for (const item of loot) { if (item.carried) { camera.remove(item.group); scene.add(item.group); } item.carried = false; item.active = true; item.group.visible = true; item.group.position.y = item.baseY; }
     for (const cat of monsters) { cat.state = 'idle'; cat.alert = 0; cat.lost = 0; cat.group.position.set(cat.kind === 'whisker' ? -9.4 : 9.1, 0, cat.kind === 'whisker' ? -5.1 : -.5); }
@@ -245,7 +245,7 @@ function interact() {
   if (state.carried) {
     if (nearExit()) {
       const delivered = state.carried; delivered.carried = false; delivered.active = false; camera.remove(delivered.group); delivered.group.visible = false;
-      const delivery = depositLoot(state.score, delivered.value); state.score = delivery.score; state.carried = null; ui.carrying.textContent = '空手'; ui.score.textContent = state.score;
+      const delivery = depositLoot(state.score, delivered.value); state.score = delivery.score; state.carried = null; ui.carrying.textContent = '空手'; ui.score.textContent = state.score; ui.progress.value = state.score;
       if (delivery.extracted) endGame(true);
       else showToast(`收到了 ${delivered.label}，目前 ${state.score} 元；再搬一些回來。`);
       return;

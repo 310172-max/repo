@@ -12,6 +12,11 @@ body { user-select: none; }
 .hud-card { min-width:100px; padding:10px 13px; background:#12140fba; border:1px solid #ffffff1d; border-radius:8px; backdrop-filter:blur(8px); box-shadow:0 4px 16px #0003; }
 .hud-card small { display:block; color:#aaa999; font-size:10px; letter-spacing:.08em; margin-bottom:3px; }
 .hud-card strong { font-family:'DM Mono',monospace; font-size:15px; color:#e5efd0; }
+.score-card { min-width:132px; }
+.score-card progress { display:block; width:100%; height:5px; margin-top:8px; border:0; border-radius:99px; overflow:hidden; appearance:none; background:#ffffff20; }
+.score-card progress::-webkit-progress-bar { border-radius:99px; background:#ffffff20; }
+.score-card progress::-webkit-progress-value { border-radius:99px; background:#c8ee74; transition:width .25s ease; }
+.score-card progress::-moz-progress-bar { border-radius:99px; background:#c8ee74; transition:width .25s ease; }
 .prompt { bottom:20%; left:50%; transform:translateX(-50%); color:white; font-size:15px; font-weight:700; text-shadow:0 2px 8px #000; opacity:0; transition:opacity .15s; }
 .prompt.show { opacity:1; }
 .toast { top:150px; left:50%; transform:translateX(-50%); padding:10px 16px; background:#171912d9; border:1px solid #d1dd9b5c; border-radius:8px; color:#e9ebd7; font-size:14px; text-align:center; opacity:0; transition:opacity .2s; pointer-events:none; }
