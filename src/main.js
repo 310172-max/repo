@@ -46,7 +46,7 @@ const colliders = [];
 const loot = [];
 const monsters = [];
 const keys = new Set();
-const state = { running: false, locked: false, score: 0, time: 180, lives: 3, carried: null, toastTimer: 0, damageCooldown: 0, bob: 0, networkSession: null };
+const state = { running: false, locked: false, score: 0, time: 180, lives: 3, carried: null, toastTimer: 0, damageCooldown: 0, bob: 0, networkSession: null, networkRole: null, networkStarted: false, networkSyncElapsed: 0, remoteAvatar: null, remoteTarget: null };
 
 const ui = {
   score: document.querySelector('#score'), progress: document.querySelector('#score-progress'), carrying: document.querySelector('#carrying'), timer: document.querySelector('#timer'),
@@ -67,18 +67,32 @@ function openNetworkRoom(action, roomCode = '') {
   state.networkSession = session;
   session.onMessage(message => {
     if (state.networkSession !== session) return;
-    if (message.type === 'peer-joined') ui.networkStatus.textContent = '兩位玩家已連線。移動、戰利品和怪物狀態仍未同步。';
-    else if (message.type === 'peer-left') ui.networkStatus.textContent = '隊友已離開房間。';
+    if (message.type === 'peer-joined') {
+      ui.networkStatus.textContent = '兩位玩家已連線。';
+      ensureRemoteAvatar();
+      if (state.networkStarted && state.running) session.sendStart();
+    }
+    else if (message.type === 'peer-left') { removeRemoteAvatar(); ui.networkStatus.textContent = '隊友已離開房間。'; }
     else if (message.type === 'disconnected') {
-      state.networkSession = null; ui.networkStatus.textContent = '連線已中斷。'; ui.leaveRoom.hidden = true;
+      state.networkSession = null; state.networkRole = null; state.networkStarted = false; removeRemoteAvatar(); ui.networkStatus.textContent = '連線已中斷。'; ui.leaveRoom.hidden = true;
+    } else if (message.type === 'input' && state.networkRole === 'host') {
+      updateRemoteAvatar(message.input);
+    } else if (message.type === 'snapshot' && state.networkRole === 'guest') {
+      applyNetworkSnapshot(message.state);
+    } else if (message.type === 'start' && state.networkRole === 'guest') {
+      state.networkStarted = true;
+      ui.button.textContent = '進入雙人測試';
+      ui.networkStatus.textContent = '房主已開始。按「進入雙人測試」加入遊戲。';
     }
   });
   session.ready.then(room => {
-    const description = action === 'create' ? `房間代碼：${room.roomCode}。等待隊友加入。` : `已加入房間 ${room.roomCode}。等待開始遊戲狀態同步。`;
-    ui.networkStatus.textContent = `${description}目前僅驗證連線。`;
+    state.networkRole = room.role;
+    const description = action === 'create' ? `房間代碼：${room.roomCode}。等待隊友加入。` : `已加入房間 ${room.roomCode}。`;
+    ui.networkStatus.textContent = `${description}遊戲中會同步位置、分數、物品和怪物位置；來賓可探索，但互動與受擊尚未共用。`;
+    if (room.role === 'guest') ensureRemoteAvatar();
     ui.leaveRoom.hidden = false;
   }).catch(error => {
-    state.networkSession = null;
+    state.networkSession = null; state.networkRole = null; removeRemoteAvatar();
     ui.networkStatus.textContent = error.message;
     session.close();
   }).finally(() => {
@@ -189,13 +203,69 @@ function makeCat(name, x, z, kind) {
   monsters.push(cat); return cat;
 }
 
+function ensureRemoteAvatar() {
+  if (state.remoteAvatar) return state.remoteAvatar;
+  const avatar = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.SphereGeometry(.34, 14, 10), mat(0x8494c1, .88)); body.position.y = .6; body.scale.set(.85, 1, 1.15); avatar.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(.25, 14, 10), mat(0xe4ddcf, .9)); head.position.y = 1.12; avatar.add(head);
+  for (const side of [-1, 1]) { const ear = new THREE.Mesh(new THREE.ConeGeometry(.09, .25, 4), mat(0xe4ddcf, .9)); ear.position.set(side * .15, 1.36, 0); avatar.add(ear); }
+  const marker = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), mat(0xc8ee74)); marker.position.set(0, 1.65, 0); avatar.add(marker);
+  avatar.position.set(0, 0, 8.2); avatar.visible = true; scene.add(avatar); state.remoteAvatar = avatar;
+  return avatar;
+}
+
+function removeRemoteAvatar() {
+  if (!state.remoteAvatar) return;
+  scene.remove(state.remoteAvatar); state.remoteAvatar = null; state.remoteTarget = null;
+}
+
+function updateRemoteAvatar(pose) {
+  if (!pose || !Number.isFinite(pose.x) || !Number.isFinite(pose.z) || !Number.isFinite(pose.yaw)) return;
+  if (pose.x < -12.25 || pose.x > 12.25 || pose.z < -9.35 || pose.z > 9.35) return;
+  ensureRemoteAvatar(); state.remoteTarget = { x: pose.x, z: pose.z, yaw: pose.yaw };
+}
+
+function createNetworkSnapshot(result = null) {
+  return {
+    host: { x: camera.position.x, z: camera.position.z, yaw: camera.rotation.y },
+    score: state.score, time: state.time, lives: state.lives, result,
+    loot: loot.map(item => {
+      const position = item.group.getWorldPosition(new THREE.Vector3());
+      return { id: item.id, active: item.active, carried: Boolean(item.carried), x: position.x, y: position.y, z: position.z };
+    }),
+    monsters: monsters.map(cat => ({ x: cat.group.position.x, z: cat.group.position.z, state: cat.state })),
+  };
+}
+
+function applyNetworkSnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') return;
+  updateRemoteAvatar(snapshot.host);
+  if (Number.isFinite(snapshot.score)) { state.score = snapshot.score; ui.score.textContent = String(snapshot.score); ui.progress.value = snapshot.score; }
+  if (Number.isFinite(snapshot.time)) { state.time = snapshot.time; ui.timer.textContent = String(Math.max(0, Math.ceil(snapshot.time))); }
+  if (Number.isFinite(snapshot.lives)) { state.lives = snapshot.lives; ui.lives.textContent = '♥ '.repeat(Math.max(0, state.lives)).trim() || '0'; }
+  for (const itemState of snapshot.loot ?? []) {
+    const item = loot[itemState.id];
+    if (!item || !Number.isFinite(itemState.x) || !Number.isFinite(itemState.y) || !Number.isFinite(itemState.z)) continue;
+    item.active = Boolean(itemState.active); item.carried = Boolean(itemState.carried);
+    if (!item.active || item.carried) { item.group.visible = false; continue; }
+    if (item.group.parent !== scene) { item.group.parent?.remove(item.group); scene.add(item.group); }
+    item.group.position.set(itemState.x, itemState.y, itemState.z); item.group.visible = true;
+  }
+  for (let index = 0; index < (snapshot.monsters ?? []).length; index++) {
+    const monsterState = snapshot.monsters[index], monster = monsters[index];
+    if (!monster || !Number.isFinite(monsterState.x) || !Number.isFinite(monsterState.z)) continue;
+    monster.group.position.set(monsterState.x, 0, monsterState.z); monster.state = monsterState.state;
+  }
+  if (snapshot.result && state.running) endGame(snapshot.result === 'won');
+}
+
 function makeLoot(x, z, value, weight, color, label) {
   const group = new THREE.Group(); group.position.set(x, 0.35, z); scene.add(group);
   const crate = new THREE.Mesh(new THREE.BoxGeometry(.62, .62, .62), mat(color, .52, .05)); crate.castShadow = true; crate.receiveShadow = true; group.add(crate);
   const band = new THREE.Mesh(new THREE.BoxGeometry(.64, .09, .64), mat(0xd8cc9d, .45)); band.position.y = .02; group.add(band);
   const seal = new THREE.Mesh(new THREE.BoxGeometry(.23, .24, .025), mat(0x191d18)); seal.position.set(0, .08, .325); group.add(seal);
   const spawnAngle = Math.random() * 6;
-  const item = { group, value, weight, label, baseY: .35, spawnX: x, spawnY: .35, spawnZ: z, spawnAngle, angle: spawnAngle, active: true };
+  const item = { id: loot.length, group, value, weight, label, baseY: .35, spawnX: x, spawnY: .35, spawnZ: z, spawnAngle, angle: spawnAngle, active: true };
   loot.push(item);
 }
 
@@ -223,6 +293,7 @@ function soundAlarm() {
 function showToast(text, duration = 2.4) { ui.toast.textContent = text; ui.toast.classList.add('show'); state.toastTimer = duration; }
 function setOverlay(headline, copy, buttonText) { ui.title.textContent = headline; ui.copy.textContent = copy; ui.button.textContent = buttonText; ui.overlay.hidden = false; }
 function start() {
+  if (state.networkRole === 'guest' && !state.networkStarted) { showToast('等房主開始後，再按下加入遊戲。'); return; }
   if (!state.running) {
     state.score = 0; state.time = 180; state.lives = 3; state.carried = null; state.damageCooldown = 0;
     ui.score.textContent = '0'; ui.progress.value = 0; ui.timer.textContent = '180'; ui.lives.textContent = '♥ ♥ ♥'; ui.carrying.textContent = '空手';
@@ -235,6 +306,7 @@ function start() {
     }
     for (const cat of monsters) { cat.state = 'idle'; cat.alert = 0; cat.lost = 0; cat.group.position.set(cat.kind === 'whisker' ? -9.4 : 9.1, 0, cat.kind === 'whisker' ? -5.1 : -.5); }
     state.running = true;
+    if (state.networkRole === 'host' && state.networkSession) { state.networkStarted = true; state.networkSession.sendStart(); }
   }
   if (!audioContext || audioContext.state === 'suspended') audioContext?.resume();
   canvas.requestPointerLock();
@@ -243,7 +315,7 @@ ui.button.addEventListener('click', start);
 ui.hostRoom.addEventListener('click', () => openNetworkRoom('create'));
 ui.joinRoom.addEventListener('submit', event => { event.preventDefault(); openNetworkRoom('join', ui.roomCode.value); });
 ui.leaveRoom.addEventListener('click', () => {
-  const session = state.networkSession; state.networkSession = null; session?.close();
+  const session = state.networkSession; state.networkSession = null; state.networkRole = null; state.networkStarted = false; removeRemoteAvatar(); session?.close();
   ui.leaveRoom.hidden = true; ui.networkStatus.textContent = '已離開房間。';
 });
 window.addEventListener('beforeunload', () => state.networkSession?.close());
@@ -289,6 +361,8 @@ function nearestLoot(maxDistance = 2.35) {
 }
 function nearExit() { return Math.hypot(camera.position.x, camera.position.z + 9.0) < 2.35; }
 function interact() {
+  if (state.networkRole === 'guest') { showToast('來賓目前可以探索；物品互動尚未接入合作規則。'); return; }
+  if (state.networkRole === 'guest') { showToast('目前由房主操作戰利品；來賓可協助探索。'); return; }
   if (state.carried) {
     if (nearExit()) {
       const delivered = state.carried; delivered.carried = false; delivered.active = false; camera.remove(delivered.group); delivered.group.visible = false;
@@ -321,6 +395,7 @@ function damagePlayer(fromMonster) {
   if (state.lives <= 0) endGame(false);
 }
 function endGame(won) {
+  if (state.networkRole === 'host' && state.networkSession) state.networkSession.sendSnapshot(createNetworkSnapshot(won ? 'won' : 'lost'));
   state.running = false; document.exitPointerLock?.();
   if (won) setOverlay('夜班收工！', `成功帶回 ${state.score} 元，整隊平安撤離。下一步：增加合作隊友與新關卡。`, '再玩一班');
   else setOverlay('這班撐不下去了', `本次回收 ${state.score} 元。注意怪物提示，別為了衝刺把整間店吵醒。`, '再試一次');
@@ -388,6 +463,7 @@ function updateMonsters(dt, playerMotion) {
 }
 
 function updateHud() {
+  if (state.networkRole === 'guest') { ui.prompt.innerHTML = ''; ui.prompt.classList.remove('show'); return; }
   let hint = '';
   const item = nearestLoot();
   if (state.carried && nearExit()) hint = '按 <b>E</b> 存放戰利品並撤離';
@@ -397,14 +473,35 @@ function updateHud() {
   ui.prompt.innerHTML = hint; ui.prompt.classList.toggle('show', Boolean(hint));
 }
 
+function updateNetwork(dt) {
+  if (!state.networkSession || !state.running || !state.locked) return;
+  state.networkSyncElapsed += dt;
+  if (state.networkSyncElapsed < .1) return;
+  state.networkSyncElapsed = 0;
+  if (state.networkRole === 'guest') {
+    state.networkSession.sendInput({ x: camera.position.x, z: camera.position.z, yaw: camera.rotation.y });
+  } else if (state.networkRole === 'host') {
+    state.networkSession.sendSnapshot(createNetworkSnapshot());
+  }
+}
+
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), .05);
+  if (state.remoteAvatar && state.remoteTarget) {
+    const blend = 1 - Math.exp(-dt * 14);
+    state.remoteAvatar.position.x = THREE.MathUtils.lerp(state.remoteAvatar.position.x, state.remoteTarget.x, blend);
+    state.remoteAvatar.position.z = THREE.MathUtils.lerp(state.remoteAvatar.position.z, state.remoteTarget.z, blend);
+    state.remoteAvatar.rotation.y = THREE.MathUtils.lerp(state.remoteAvatar.rotation.y, state.remoteTarget.yaw, blend);
+  }
   const playerMotion = state.running && state.locked ? updatePlayer(dt) : { moving: false, sprinting: false };
   if (state.running && state.locked) {
-    state.time -= dt; ui.timer.textContent = Math.max(0, Math.ceil(state.time));
-    if (state.time <= 0) endGame(false);
-    updateMonsters(dt, playerMotion); updateHud();
+    if (state.networkRole !== 'guest') {
+      state.time -= dt; ui.timer.textContent = Math.max(0, Math.ceil(state.time));
+      if (state.time <= 0) endGame(false);
+    }
+    if (state.networkRole !== 'guest') updateMonsters(dt, playerMotion);
+    updateNetwork(dt); updateHud();
     for (const item of loot) if (item.active && !item.carried) { item.angle += dt * .45; item.group.rotation.y = Math.sin(item.angle) * .12; item.group.position.y = item.baseY + Math.sin(item.angle * 2) * .045; }
     if (state.toastTimer > 0) { state.toastTimer -= dt; if (state.toastTimer <= 0) ui.toast.classList.remove('show'); }
   }

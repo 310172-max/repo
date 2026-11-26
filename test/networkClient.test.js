@@ -18,10 +18,11 @@ test('browser session helper enforces guest input and host snapshot roles', asyn
   await once(server, 'listening');
   const url = `ws://127.0.0.1:${server.address().port}`;
   const host = connectRoom({ url, action: 'create', WebSocketImpl: WebSocket });
-  await host.ready;
+  const hostRoom = await host.ready;
+  assert.equal(hostRoom.role, 'host');
   const guestPeerMessage = waitForMessage(host, 'peer-joined');
-  const guest = connectRoom({ url, action: 'join', roomCode: (await host.ready).roomCode, WebSocketImpl: WebSocket });
-  await guest.ready;
+  const guest = connectRoom({ url, action: 'join', roomCode: hostRoom.roomCode, WebSocketImpl: WebSocket });
+  assert.equal((await guest.ready).role, 'guest');
   await guestPeerMessage;
 
   t.after(async () => {
@@ -31,6 +32,11 @@ test('browser session helper enforces guest input and host snapshot roles', asyn
 
   assert.equal(host.sendInput({ forward: true }), false);
   assert.equal(guest.sendSnapshot({ score: 999 }), false);
+  assert.equal(guest.sendStart(), false);
+
+  const startSignal = waitForMessage(guest, 'start');
+  assert.equal(host.sendStart(), true);
+  await startSignal;
 
   const relayedInput = waitForMessage(host, 'input');
   assert.equal(guest.sendInput({ forward: true, yaw: 1.2 }), true);

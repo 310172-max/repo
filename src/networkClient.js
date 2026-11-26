@@ -30,7 +30,7 @@ export function connectRoom({ url, action, roomCode, WebSocketImpl = globalThis.
         settled = true;
         joined = true;
         role = roomAction.role;
-        resolve(message);
+        resolve({ ...message, role: roomAction.role });
         return;
       }
       for (const listener of listeners) listener(message);
@@ -58,6 +58,11 @@ export function connectRoom({ url, action, roomCode, WebSocketImpl = globalThis.
     ready,
     onMessage(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     sendInput(input) { return send('input', { name: 'input', value: input }, 'guest'); },
+    sendStart() {
+      if (!joined || role !== 'host' || socket.readyState !== WebSocketImpl.OPEN) return false;
+      socket.send(JSON.stringify({ type: 'start' }));
+      return true;
+    },
     sendSnapshot(state) { return send('snapshot', { name: 'state', value: state }, 'host'); },
     close() { socket.close(); },
   };
