@@ -42,6 +42,7 @@ export function connectRoom({ url, action, roomCode, WebSocketImpl = globalThis.
     socket.addEventListener('message', onMessage);
     socket.addEventListener('error', onError, { once: true });
     socket.addEventListener('close', () => {
+      if (!settled) { settled = true; reject(new Error('Connection closed before joining the room.')); }
       joined = false;
       for (const listener of listeners) listener({ type: 'disconnected' });
     }, { once: true });

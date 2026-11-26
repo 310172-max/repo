@@ -26,6 +26,19 @@
           <h1 id="overlay-title">今晚搬點大的</h1>
           <p id="overlay-copy">在店裡找戰利品，搬回綠色撤離門。湊滿 20 元就能收工。方鬍子貓靠近會先叫你一聲。</p>
           <div class="controls"><span><b>W A S D</b> 移動</span><span><b>滑鼠</b> 看方向</span><span><b>E</b> 搬起／放下</span><span><b>Shift</b> 衝刺</span><span><b>Esc</b> 暫停</span></div>
+          <section class="network-panel" aria-labelledby="network-title">
+            <h2 id="network-title">雙人連線測試</h2>
+            <div class="network-actions">
+              <button id="host-room-button" class="secondary" type="button">建立房間</button>
+              <form id="join-room-form">
+                <label class="visually-hidden" for="room-code">房間代碼</label>
+                <input id="room-code" maxlength="6" autocomplete="off" placeholder="輸入 6 位代碼" />
+                <button id="join-room-button" type="submit">加入</button>
+              </form>
+              <button id="leave-room-button" class="secondary" type="button" hidden>離開房間</button>
+            </div>
+            <p id="network-status" aria-live="polite">房間連線可測試；玩家移動和遊戲狀態尚未同步。</p>
+          </section>
           <button id="start-button">進入便利商店</button>
           <p class="small-note">建議使用電腦與滑鼠。請在本機伺服器或發布網站上遊玩。</p>
         </div>

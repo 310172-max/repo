@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import './style.css';
+import { connectRoom } from './networkClient.js';
 import { depositLoot, EXTRACTION_TARGET, lootResetState, movementSpeed, shouldWarnWhisker } from './gameRules.js';
 
 const canvas = document.querySelector('#scene');
@@ -45,14 +46,46 @@ const colliders = [];
 const loot = [];
 const monsters = [];
 const keys = new Set();
-const state = { running: false, locked: false, score: 0, time: 180, lives: 3, carried: null, toastTimer: 0, damageCooldown: 0, bob: 0 };
+const state = { running: false, locked: false, score: 0, time: 180, lives: 3, carried: null, toastTimer: 0, damageCooldown: 0, bob: 0, networkSession: null };
 
 const ui = {
   score: document.querySelector('#score'), progress: document.querySelector('#score-progress'), carrying: document.querySelector('#carrying'), timer: document.querySelector('#timer'),
   lives: document.querySelector('#lives'), prompt: document.querySelector('#prompt'), toast: document.querySelector('#toast'),
   overlay: document.querySelector('#overlay'), title: document.querySelector('#overlay-title'), copy: document.querySelector('#overlay-copy'),
-  button: document.querySelector('#start-button'),
+  button: document.querySelector('#start-button'), hostRoom: document.querySelector('#host-room-button'), joinRoom: document.querySelector('#join-room-form'), leaveRoom: document.querySelector('#leave-room-button'), roomCode: document.querySelector('#room-code'), networkStatus: document.querySelector('#network-status'),
 };
+
+const networkUrl = import.meta.env.VITE_MULTIPLAYER_URL || (['localhost', '127.0.0.1'].includes(location.hostname) ? `ws://${location.hostname}:1234` : '');
+
+function openNetworkRoom(action, roomCode = '') {
+  if (!networkUrl) { ui.networkStatus.textContent = '這個網站尚未設定合作服務位址。'; return; }
+  if (state.networkSession) { ui.networkStatus.textContent = '請先重新載入頁面，再建立或加入其他房間。'; return; }
+  ui.hostRoom.disabled = true;
+  ui.joinRoom.querySelector('button').disabled = true;
+  ui.networkStatus.textContent = '正在連線……';
+  const session = connectRoom({ url: networkUrl, action, roomCode });
+  state.networkSession = session;
+  session.onMessage(message => {
+    if (state.networkSession !== session) return;
+    if (message.type === 'peer-joined') ui.networkStatus.textContent = '兩位玩家已連線。移動、戰利品和怪物狀態仍未同步。';
+    else if (message.type === 'peer-left') ui.networkStatus.textContent = '隊友已離開房間。';
+    else if (message.type === 'disconnected') {
+      state.networkSession = null; ui.networkStatus.textContent = '連線已中斷。'; ui.leaveRoom.hidden = true;
+    }
+  });
+  session.ready.then(room => {
+    const description = action === 'create' ? `房間代碼：${room.roomCode}。等待隊友加入。` : `已加入房間 ${room.roomCode}。等待開始遊戲狀態同步。`;
+    ui.networkStatus.textContent = `${description}目前僅驗證連線。`;
+    ui.leaveRoom.hidden = false;
+  }).catch(error => {
+    state.networkSession = null;
+    ui.networkStatus.textContent = error.message;
+    session.close();
+  }).finally(() => {
+    ui.hostRoom.disabled = false;
+    ui.joinRoom.querySelector('button').disabled = false;
+  });
+}
 
 const mat = (color, roughness = 0.82, metalness = 0) => new THREE.MeshStandardMaterial({ color, roughness, metalness });
 const floorMat = mat(0x45473a);
@@ -207,6 +240,13 @@ function start() {
   canvas.requestPointerLock();
 }
 ui.button.addEventListener('click', start);
+ui.hostRoom.addEventListener('click', () => openNetworkRoom('create'));
+ui.joinRoom.addEventListener('submit', event => { event.preventDefault(); openNetworkRoom('join', ui.roomCode.value); });
+ui.leaveRoom.addEventListener('click', () => {
+  const session = state.networkSession; state.networkSession = null; session?.close();
+  ui.leaveRoom.hidden = true; ui.networkStatus.textContent = '已離開房間。';
+});
+window.addEventListener('beforeunload', () => state.networkSession?.close());
 document.addEventListener('pointerlockchange', () => {
   state.locked = document.pointerLockElement === canvas;
   if (state.locked) ui.overlay.hidden = true;
@@ -220,6 +260,7 @@ document.addEventListener('mousemove', event => {
   camera.rotation.x = THREE.MathUtils.clamp(camera.rotation.x - event.movementY * .0019, -1.35, 1.35);
 });
 window.addEventListener('keydown', event => {
+  if (event.target instanceof HTMLInputElement) return;
   const key = event.key.toLowerCase();
   if (['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' '].includes(key)) event.preventDefault();
   keys.add(key);

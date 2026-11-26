@@ -31,7 +31,16 @@ h1 { font-size:clamp(32px,7vw,54px); letter-spacing:-.055em; margin:12px 0; line
 .overlay-card>p:not(.eyebrow):not(.small-note) { color:#c2c1b4; line-height:1.75; margin:12px 0 20px; }
 .controls { display:grid; grid-template-columns:repeat(2,1fr); gap:9px; margin:22px 0 26px; color:#c4c4b7; font-size:13px; }
 .controls b { display:inline-block; min-width:54px; color:#f1efd9; font:11px 'DM Mono',monospace; }
+.network-panel { margin:18px 0; padding:14px; border:1px solid #ffffff20; border-radius:9px; background:#0d100d8c; }
+.network-panel h2 { margin:0 0 10px; font-size:14px; }
+.network-actions { display:flex; align-items:stretch; gap:8px; }
+.network-actions>button, #join-room-form button { width:auto; padding:9px 12px; font-size:12px; }
+.network-actions button.secondary { background:#ffffff12; color:#eeeade; border:1px solid #ffffff24; }
+#join-room-form { display:flex; flex:1; gap:6px; }
+#room-code { min-width:0; flex:1; border:1px solid #ffffff2a; border-radius:7px; padding:8px 10px; background:#090b09; color:#f4f0e7; font:13px 'DM Mono',monospace; text-transform:uppercase; }
+#network-status { min-height:2.8em; margin:10px 0 0; color:#aaa999; font-size:11px; line-height:1.5; }
+.visually-hidden { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 button { border:0; border-radius:8px; padding:14px 20px; width:100%; background:#c8ee74; color:#15170f; font:800 15px "Noto Sans TC", "Microsoft JhengHei", sans-serif; cursor:pointer; transition:background .15s,transform .15s; }
 button:hover { background:#dcff8d; transform:translateY(-1px); }
 .small-note { color:#818176; font-size:11px; text-align:center; margin:14px 0 0; }
-@media(max-width:650px){.topbar{top:12px;left:12px;right:12px}.hud{left:12px;top:52px;gap:5px}.hud-card{min-width:76px;padding:8px}.hud-card small{font-size:9px}.hud-card strong{font-size:12px}.controls{grid-template-columns:1fr 1fr}.toast{top:125px;width:calc(100% - 28px)}}
+@media(max-width:650px){.topbar{top:12px;left:12px;right:12px}.hud{left:12px;top:52px;gap:5px}.hud-card{min-width:76px;padding:8px}.hud-card small{font-size:9px}.hud-card strong{font-size:12px}.controls{grid-template-columns:1fr 1fr}.network-actions{flex-direction:column}.network-actions>button{width:100%}.toast{top:125px;width:calc(100% - 28px)}}
