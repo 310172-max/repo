@@ -92,3 +92,38 @@ test('room rejects a third player and does not allow guests to publish authority
   third.send(JSON.stringify({ type: 'room-join', roomCode: created.roomCode }));
   assert.match((await fullRoomMessage).message, /已滿/);
 });
+
+test('host disconnect closes the room and tells the guest why', async t => {
+  const server = createGameServer({ port: 0 });
+  await once(server, 'listening');
+  const url = `ws://127.0.0.1:${server.address().port}`;
+  const host = new WebSocket(url);
+  await once(host, 'open');
+  const guest = new WebSocket(url);
+  await once(guest, 'open');
+
+  t.after(async () => {
+    for (const socket of [host, guest]) if (socket.readyState === WebSocket.OPEN) socket.close();
+    await new Promise(resolve => server.close(resolve));
+  });
+
+  const createdMessage = nextMessage(host);
+  host.send(JSON.stringify({ type: 'room-create' }));
+  const created = await createdMessage;
+  const joinedMessage = nextMessage(guest);
+  guest.send(JSON.stringify({ type: 'room-join', roomCode: created.roomCode }));
+  await joinedMessage;
+
+  const guestClosed = once(guest, 'close');
+  host.close();
+  const [code, reason] = await guestClosed;
+  assert.equal(code, 4000);
+  assert.equal(reason.toString(), '房主已離線');
+
+  const reconnect = new WebSocket(url);
+  await once(reconnect, 'open');
+  const missingRoomMessage = nextMessage(reconnect);
+  reconnect.send(JSON.stringify({ type: 'room-join', roomCode: created.roomCode }));
+  assert.match((await missingRoomMessage).message, /找不到/);
+  reconnect.close();
+});

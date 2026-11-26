@@ -43,7 +43,7 @@
 
 ### 目前狀態
 
-目前已完成概念初談，並已把原本的平面草稿替換成 Three.js 第一人稱 3D 網頁原型：午夜便利商店場景、搬運與撤離、倒數、生命值、兩種怪物及方鬍子貓警告音效。Grumpy Cat 像素迷因圖已按 CC BY 2.0 署名。9 項自動化測試通過，正式建置成功；尚未透過瀏覽器遊玩驗證操作與平衡，也尚未將多人連線接入遊戲客戶端。Node.js WebSocket 兩人房間中繼服務已完成初版並有整合測試。GitHub Actions workflow 位於 `.github/workflows/pages.yml`；公開執行紀錄顯示遠端唯一一次部署在 `configure-pages` 取得 Pages 設定時回傳 404，原因是 repo 尚未啟用 Pages。workflow 已在本機更新至支援 Node 24 的 Action 版本，尚未推送或重跑。遠端 `main` 仍停在 `0e1125e`；本機包含從 `e464888` 開始的待推送提交。
+目前已完成概念初談，並已把原本的平面草稿替換成 Three.js 第一人稱 3D 網頁原型：午夜便利商店場景、搬運與撤離、倒數、生命值、兩種怪物及方鬍子貓警告音效。Grumpy Cat 像素迷因圖已按 CC BY 2.0 署名。10 項自動化測試通過，正式建置成功；尚未透過瀏覽器遊玩驗證操作與平衡，也尚未將多人連線接入遊戲客戶端。Node.js WebSocket 兩人房間中繼服務已完成初版並有整合測試。GitHub Actions workflow 位於 `.github/workflows/pages.yml`；公開執行紀錄顯示遠端唯一一次部署在 `configure-pages` 取得 Pages 設定時回傳 404，原因是 repo 尚未啟用 Pages。workflow 已在本機更新至支援 Node 24 的 Action 版本，尚未推送或重跑。遠端 `main` 仍停在 `0e1125e`；本機包含從 `e464888` 開始的待推送提交。
 
 ### 已完成
 
