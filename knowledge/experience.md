@@ -32,6 +32,12 @@
 - **適用範圍**：使用 Git 遠端的專案交付、CI/CD 與部署狀態檢查；只確認 Git 物件同步，不代表建置、部署或線上功能驗收成功。
 - **本專案應用**：確認 `origin/main` 與本機 `main` 同為 `0e1125e`，因此推送已完成；本機沒有 `gh` CLI，Pages workflow 執行及網站部署仍需透過 GitHub Actions／網站狀態查證。
 
+## GitHub Pages 部署故障定位
+
+- **經驗**：工作流程檔存在且觸發成功，不等於 Pages 已啟用。檢查 Actions run 的第一個失敗步驟；`configure-pages` 取得 repo Pages 設定時回傳 404，應先檢查 repo Settings → Pages 的發布來源。標準 `GITHUB_TOKEN` 不足以自動啟用尚未設定的 Pages，避免用增加權限的長效 token 掩蓋設定問題。
+- **適用範圍**：GitHub Pages 自訂 Actions 發布流程；不能由本機建置成功推論雲端權限、Pages 設定或實際部署成功。
+- **本專案應用**：遠端唯一 workflow run `44441793824` 在 `actions/configure-pages` 以 404 失敗；已把設定頁選擇 GitHub Actions 記為待管理員完成的外部步驟。
+
 ## 可純測試的遊戲規則
 
 - **經驗**：把撤離門檻、移動速度等不依賴畫面或 WebGL 的規則放在純函式模組，使用 Node.js 內建 `node:test` 驗證邊界條件，不必為這些規則引入額外測試框架。

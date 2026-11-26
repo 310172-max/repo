@@ -43,7 +43,7 @@
 
 ### 目前狀態
 
-目前已完成概念初談，並已把原本的平面草稿替換成 Three.js 第一人稱 3D 網頁原型：午夜便利商店場景、搬運與撤離、倒數、生命值、兩種怪物及方鬍子貓警告音效。Grumpy Cat 像素迷因圖已按 CC BY 2.0 署名。5 項規則測試通過，正式建置成功；尚未透過瀏覽器遊玩驗證操作與平衡，也尚未加入多人連線。GitHub Actions workflow 位於 `.github/workflows/pages.yml`，會建置 Vite `dist/` 再部署；已確認遠端 `main` 與本機提交 `0e1125e` 相同，推送已完成。GitHub Pages 的來源設定與實際部署結果尚未確認。
+目前已完成概念初談，並已把原本的平面草稿替換成 Three.js 第一人稱 3D 網頁原型：午夜便利商店場景、搬運與撤離、倒數、生命值、兩種怪物及方鬍子貓警告音效。Grumpy Cat 像素迷因圖已按 CC BY 2.0 署名。5 項規則測試通過，正式建置成功；尚未透過瀏覽器遊玩驗證操作與平衡，也尚未加入多人連線。GitHub Actions workflow 位於 `.github/workflows/pages.yml`；公開執行紀錄顯示遠端唯一一次部署在 `configure-pages` 取得 Pages 設定時回傳 404，原因是 repo 尚未啟用 Pages。workflow 已在本機更新至支援 Node 24 的 Action 版本，尚未推送或重跑。遠端 `main` 仍停在 `0e1125e`，本機有 5 筆未推送提交。
 
 ### 已完成
 
@@ -79,7 +79,8 @@
 - [ ] 決定正式遊戲引擎、多人連線方式及美術製作流程；目前選定的是 Web 原型工具鏈。
 - [x] 設定本機遠端 `origin` 指向 `310172-max/repo`、切至 `main`，建立原型初始提交。
 - [x] 完成 GitHub 認證並推送本機 `main`；已用 `git ls-remote --heads origin main` 確認遠端 `main` 指向本機提交 `0e1125e`。
-- [ ] 在 GitHub repo 設定 Pages 使用 GitHub Actions，推送專案並確認部署成功。
+- [x] 將 Pages workflow 內的 Actions 升至 Node 24 相容主版本；遠端執行紀錄顯示 Pages 尚未啟用，因此仍待管理員設定後重跑。
+- [ ] 由有管理權限者在 GitHub repo 的 Settings → Pages 將來源設為 GitHub Actions；既有部署 run `44441793824` 因 Pages 未啟用而在 `configure-pages` 失敗。完成設定並推送後再確認部署成功。
 - [x] 製作單人核心玩法原型：第一人稱移動、物品搬運、怪物威脅、撤離結算。
 - [ ] 製作多人核心玩法：同步移動、搬運物品狀態與怪物威脅。
 - [ ] 遊玩並調整原型的移動速度、警告距離、怪物追逐及關卡難度。
