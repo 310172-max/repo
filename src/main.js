@@ -156,22 +156,22 @@ function makeCat(name, x, z, kind) {
   monsters.push(cat); return cat;
 }
 
-function makeLoot(x, z, value, color, label) {
+function makeLoot(x, z, value, weight, color, label) {
   const group = new THREE.Group(); group.position.set(x, 0.35, z); scene.add(group);
   const crate = new THREE.Mesh(new THREE.BoxGeometry(.62, .62, .62), mat(color, .52, .05)); crate.castShadow = true; crate.receiveShadow = true; group.add(crate);
   const band = new THREE.Mesh(new THREE.BoxGeometry(.64, .09, .64), mat(0xd8cc9d, .45)); band.position.y = .02; group.add(band);
   const seal = new THREE.Mesh(new THREE.BoxGeometry(.23, .24, .025), mat(0x191d18)); seal.position.set(0, .08, .325); group.add(seal);
   const spawnAngle = Math.random() * 6;
-  const item = { group, value, label, baseY: .35, spawnX: x, spawnY: .35, spawnZ: z, spawnAngle, angle: spawnAngle, active: true };
+  const item = { group, value, weight, label, baseY: .35, spawnX: x, spawnY: .35, spawnZ: z, spawnAngle, angle: spawnAngle, active: true };
   loot.push(item);
 }
 
 function makeWorld() {
   makeRoom();
-  makeLoot(-10.8, -3.1, 5, 0xa5784e, '泡麵箱'); makeLoot(-8.3, 1.5, 10, 0x7a9d77, '汽水整箱');
-  makeLoot(-6.1, 7.8, 5, 0xb1a068, '洋芋片箱'); makeLoot(-1.8, -6.8, 10, 0x6c90a0, '冰品保冷箱');
-  makeLoot(2.2, 4.2, 5, 0xa5784e, '餅乾箱'); makeLoot(7.2, -5.6, 15, 0x9d765b, '限定零食');
-  makeLoot(10.3, 3.3, 10, 0x748b6d, '汽水整箱'); makeLoot(2.3, -2.9, 5, 0x9b8863, '咖啡豆');
+  makeLoot(-10.8, -3.1, 5, 8, 0xa5784e, '泡麵箱'); makeLoot(-8.3, 1.5, 10, 16, 0x7a9d77, '汽水整箱');
+  makeLoot(-6.1, 7.8, 5, 5, 0xb1a068, '洋芋片箱'); makeLoot(-1.8, -6.8, 10, 15, 0x6c90a0, '冰品保冷箱');
+  makeLoot(2.2, 4.2, 5, 8, 0xa5784e, '餅乾箱'); makeLoot(7.2, -5.6, 15, 5, 0x9d765b, '限定零食');
+  makeLoot(10.3, 3.3, 10, 16, 0x748b6d, '汽水整箱'); makeLoot(2.3, -2.9, 5, 10, 0x9b8863, '咖啡豆');
   makeCat('方鬍子貓', -9.4, -5.1, 'whisker');
   makeCat('鍵盤暴走貓', 9.1, -0.5, 'keyboard');
 }
@@ -266,7 +266,7 @@ function interact() {
   if (!item) { showToast('附近沒有可以搬的戰利品。'); return; }
   item.carried = true; state.carried = item; scene.remove(item.group); camera.add(item.group);
   item.group.position.set(.46, -.34, -1.12); item.group.rotation.set(.08, .2, .04);
-  ui.carrying.textContent = `${item.label} · ${item.value}元`; showToast(`搬起${item.label}。帶到綠色撤離門按 E 存放。`);
+  ui.carrying.textContent = `${item.label} · ${item.value}元 · 重${item.weight}`; showToast(`搬起${item.label}（重量 ${item.weight}）。帶到綠色撤離門按 E 存放。`);
 }
 
 function damagePlayer(fromMonster) {
@@ -297,7 +297,7 @@ function updatePlayer(dt) {
   const sprinting = keys.has('shift') && moving && !state.carried;
   if (moving) {
     moveVector.normalize();
-    const speed = movementSpeed({ carrying: Boolean(state.carried), sprinting });
+    const speed = movementSpeed({ carrying: Boolean(state.carried), carriedWeight: state.carried?.weight, sprinting });
     movePlayer(moveVector.x * speed * dt, moveVector.z * speed * dt);
     state.bob += dt * (sprinting ? 13 : 8);
     camera.position.y = 1.66 + Math.sin(state.bob) * (sprinting ? .045 : .022);

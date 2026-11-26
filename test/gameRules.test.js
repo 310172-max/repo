@@ -15,6 +15,11 @@ test('carrying slows the player and prevents sprint speed', () => {
   assert.equal(movementSpeed({ carrying: true }), 2.05);
 });
 
+test('lighter loot is faster to carry than heavier loot', () => {
+  assert.ok(movementSpeed({ carrying: true, carriedWeight: 5 }) > movementSpeed({ carrying: true, carriedWeight: 16 }));
+  assert.equal(Number(movementSpeed({ carrying: true, carriedWeight: 16 }).toFixed(2)), 1.73);
+});
+
 test('an empty handed player can sprint faster than walking', () => {
   assert.ok(movementSpeed({ sprinting: true }) > movementSpeed());
 });

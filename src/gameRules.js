@@ -6,8 +6,8 @@ export function depositLoot(currentScore, itemValue) {
   return { score, extracted: score >= EXTRACTION_TARGET };
 }
 
-export function movementSpeed({ carrying = false, sprinting = false } = {}) {
-  if (carrying) return 2.05;
+export function movementSpeed({ carrying = false, carriedWeight = 12, sprinting = false } = {}) {
+  if (carrying) return Math.max(1.25, 3.01 - carriedWeight * 0.08);
   return sprinting ? 5.55 : 3.35;
 }
 
