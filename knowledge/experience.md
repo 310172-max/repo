@@ -7,7 +7,13 @@
 - **經驗**：需要部署到 GitHub Pages 的 3D 瀏覽器原型，採 Three.js 搭配 Vite 產生靜態 `dist/`，並在 Vite 設定相對路徑 `base: './'`，可避免 repo 網址含子路徑時 JS／資產路徑錯誤。依賴使用 npm lockfile 固定版本；Actions 建置 `dist/` 後再部署 Pages。
 - **適用範圍**：單機或前端展示型 WebGL 遊戲、GitHub Pages 靜態託管。多人即時連線、帳號、狀態持久化仍需獨立後端服務，不能由 Pages 靜態主機提供。
 - **本專案應用**：用於初期驗證第一人稱移動、3D 搬運和怪物行為；之後若改用 Unity/Godot 或加入多人後端，需重新評估工具鏈。
-- **建置觀察**：Three.js 0.187 的原型 bundle 約 571 KB（約 145 KB gzip）；目前可以接受作為桌機原型，但要擴大場景或加模型前應檢查載入時間、拆分程式碼及壓縮資產。
+- **建置觀察**：未拆分時 Three.js 0.187 原型 bundle 約 572 KB（約 145 KB gzip）。Vite 8 / Rolldown 依套件分成兩個 chunk 後，最大 chunk 約 353 KB，另一個約 206 KB，建置不再出現 500 KB chunk 提醒；gzip 合計約 140 KB，拆分改善單檔大小但沒有大幅減少總載入量，還會增加請求數。加入較大型素材或場景後仍應量測實際載入表現。
+
+## Vite / Rolldown 套件拆分
+
+- **經驗**：Vite 8 以 Rolldown `output.codeSplitting.groups` 將大型依賴分組；可降低最大單一 chunk，避免把單檔警告當成總下載量問題已解決。手動分塊可能影響模組副作用執行順序，須檢查正式建置並做瀏覽器驗收。
+- **適用範圍**：Vite 8 / Rolldown 的瀏覽器 ESM 專案；拆分主要改善單檔尺寸和快取邊界，不保證減少總位元組數或改善首次載入。
+- **本專案應用**：`vite.config.js` 將 Three.js 套件以 `maxSize: 250000` 分組，建置輸出兩個 Three.js chunk，最大約 353 KB；實際遊戲載入順序尚待瀏覽器驗收。
 
 ## 網路迷因素材
 
