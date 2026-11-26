@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import './style.css';
-import { depositLoot, EXTRACTION_TARGET, movementSpeed, shouldWarnWhisker } from './gameRules.js';
+import { depositLoot, EXTRACTION_TARGET, lootResetState, movementSpeed, shouldWarnWhisker } from './gameRules.js';
 
 const canvas = document.querySelector('#scene');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -161,7 +161,8 @@ function makeLoot(x, z, value, color, label) {
   const crate = new THREE.Mesh(new THREE.BoxGeometry(.62, .62, .62), mat(color, .52, .05)); crate.castShadow = true; crate.receiveShadow = true; group.add(crate);
   const band = new THREE.Mesh(new THREE.BoxGeometry(.64, .09, .64), mat(0xd8cc9d, .45)); band.position.y = .02; group.add(band);
   const seal = new THREE.Mesh(new THREE.BoxGeometry(.23, .24, .025), mat(0x191d18)); seal.position.set(0, .08, .325); group.add(seal);
-  const item = { group, value, label, baseY: .35, angle: Math.random() * 6, active: true };
+  const spawnAngle = Math.random() * 6;
+  const item = { group, value, label, baseY: .35, spawnX: x, spawnY: .35, spawnZ: z, spawnAngle, angle: spawnAngle, active: true };
   loot.push(item);
 }
 
@@ -193,7 +194,12 @@ function start() {
     state.score = 0; state.time = 180; state.lives = 3; state.carried = null; state.damageCooldown = 0;
     ui.score.textContent = '0'; ui.progress.value = 0; ui.timer.textContent = '180'; ui.lives.textContent = '♥ ♥ ♥'; ui.carrying.textContent = '空手';
     camera.position.set(0, 1.66, 8.2); camera.rotation.set(0, 0, 0);
-    for (const item of loot) { if (item.carried) { camera.remove(item.group); scene.add(item.group); } item.carried = false; item.active = true; item.group.visible = true; item.group.position.y = item.baseY; }
+    for (const item of loot) {
+      if (item.carried) { camera.remove(item.group); scene.add(item.group); }
+      const reset = lootResetState(item);
+      item.carried = reset.carried; item.active = reset.active; item.angle = reset.angle; item.group.visible = true;
+      item.group.position.set(reset.position.x, reset.position.y, reset.position.z); item.group.rotation.set(0, 0, 0);
+    }
     for (const cat of monsters) { cat.state = 'idle'; cat.alert = 0; cat.lost = 0; cat.group.position.set(cat.kind === 'whisker' ? -9.4 : 9.1, 0, cat.kind === 'whisker' ? -5.1 : -.5); }
     state.running = true;
   }

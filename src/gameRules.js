@@ -14,3 +14,12 @@ export function movementSpeed({ carrying = false, sprinting = false } = {}) {
 export function shouldWarnWhisker(monsterState, distance) {
   return monsterState === 'idle' && distance < WHISKER_WARNING_RANGE;
 }
+
+export function lootResetState({ spawnX, spawnY, spawnZ, spawnAngle }) {
+  return {
+    active: true,
+    carried: false,
+    position: { x: spawnX, y: spawnY, z: spawnZ },
+    angle: spawnAngle,
+  };
+}
